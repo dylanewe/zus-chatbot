@@ -3,7 +3,8 @@ from langchain_community.utilities import SQLDatabase
 from langchain_openai import ChatOpenAI
 from langchain.prompts import PromptTemplate
 from typing_extensions import TypedDict
-from langchain.chains import LLMChain
+from langchain_core.output_parsers import StrOutputParser
+
 
 class State(TypedDict):
     question: str
@@ -77,17 +78,8 @@ qa_prompt = PromptTemplate(
     template=qa_template
 )
 
-text2sql_chain = LLMChain(
-    llm=llm,
-    prompt=text2sql_prompt,
-    output_key="query"
-)
-
-qa_chain = LLMChain(
-    llm=llm,
-    prompt=qa_prompt,
-    output_key="answer"
-)
+text2sql_chain = text2sql_prompt | llm | StrOutputParser(output_key="query")
+qa_chain = qa_prompt | llm | StrOutputParser(output_key="answer")
 
 def outlet_chain(question):
     schema = db.get_table_info()
@@ -96,7 +88,3 @@ def outlet_chain(question):
     result = db.run(sql_query)
     answer = qa_chain.invoke({"context":result, "question":question})["answer"].strip()
     return answer
-
-
-
-
